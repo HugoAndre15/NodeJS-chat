@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #chat-container {
+      max-width: 400px;
+      width: 100%;
+      background-color: white;
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #messages {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    #messages li {
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      animation: fadeInUp 0.3s ease both;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .author {
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    .time {
+      font-size: 12px;
+      color: #777;
+      position: relative;
+      right: 0;
+      display: inline-block;
+      margin-left: 1rem;
+      margin-top: 3px;
+      vertical-align: middle;
+    }
+
+    #form {
+      margin-top: 10px;
+      display: flex;
+    }
+
+    #input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    #quit-button {
+      background-color: #dc3545;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container">
+    <h1>Real-Time Chat</h1>
+    <div id="login-form">
+      <form id="login" action="">
+        <label for="username">Enter your username:</label>
+        <input type="text" id="username" />
+        <button type="submit">Start Chatting</button>
+      </form>
+    </div>
+    <div id="chat" style="display: none;">
+      <ul id="messages"></ul>
+      <form id="form" action="">
+        <input id="input" autocomplete="off" /><button>Send</button>
+      </form>
+      <button id="quit-button">Quit the Discussion</button>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(function () {
+      var socket = io();
+      var username = '';
+      var userColor = getRandomColor();
+
+      $('#login').submit(function(){
+        username = $('#username').val();
+        if (username === '') {
+          alert('Please enter your username.');
+          return false;
+        }
+        socket.emit('chat message', { username: 'System', message: `${username} has joined the discussion.`, color: '#0F0' });
+        $('#login-form').hide();
+        $('#chat').show();
+        return false;
+      });
+
+      function getRandomColor() {
+        var letters = '0123456789ABCDEF';
+        var color = '#';
+        for (var i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      }
+
+      $('#quit-button').click(function() {
+        $('#chat').hide();
+        $('#login-form').show();
+        socket.emit('chat message', { username: 'System', message: `${username} has left the discussion.`, color: '#F00' });
+        username = '';
+      });
+
+      $('form').submit(function(){
+        if (username === '') {
+          alert('Please enter your username first.');
+          return false;
+        }
+        
+        var message = $('#input').val().trim();
+        if (message === '') {
+          return false;
+        }
+        
+        socket.emit('chat message', { username: username, message: message, color: userColor });
+        $('#input').val('');
+        return false;
+      });
+
+      socket.on('chat message', function(data){
+        var message = $('<li>').append($('<span>').addClass('author').text(data.username).css('color', data.color));
+        message.append(document.createTextNode(": "));
+        var messageText = $('<span>').text(data.message);
+        message.append(messageText);
+
+        var timeSpan = $('<span>').addClass('time').text(new Date().toLocaleTimeString());
+        message.append(timeSpan);
+
+        $('#messages').append(message);
+      });
+    });
+  </script>
+</body>
+</html>
