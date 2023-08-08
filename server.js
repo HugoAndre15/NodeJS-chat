@@ -8,6 +8,8 @@ const io = socketIo(server);
 
 const PORT = process.env.PORT || 3000;
 
+app.use(express.static("public")); // Assumez que vos fichiers sont dans le répertoire "public"
+
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });

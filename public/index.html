@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="chat-container">
+      <h1>Real-Time Chat</h1>
+      <div id="login-form">
+        <form id="login" action="">
+          <label for="username">Enter your username:</label>
+          <input type="text" id="username" />
+          <button type="submit">Start Chatting</button>
+        </form>
+      </div>
+      <div id="chat" style="display: none;">
+        <div id="user-info" onclick="openUserProfile()">
+          <span id="online-icon"></span>
+          <span id="username-header"></span>
+        </div>
+        <ul id="messages"></ul>
+        <form id="form" action="">
+          <input id="input" autocomplete="off" /><button>Send</button>
+        </form>
+        <button id="quit-button">Quit the Discussion</button>
+      </div>
+    </div>
+    <div id="user-profile">
+        <h1>User Profile</h1>
+        <p>
+          <span id="user-status-indicator"></span>
+          <span id="user-profile-name"></span>
+        </p>
+        <button id="change-name-button">Change Name</button>
+        <button id="change-status-button">Change Status</button>
+        <div id="status-dropdown" style="display: none;">
+          <select id="status-select">
+            <option value="online">Present</option>
+            <option value="offline">Absent</option>
+            <option value="dnd">Do Not Disturb</option>
+          </select>
+          <button id="confirm-status-button">Confirm</button>
+        </div>
+        <button id="back-to-chat-button" onclick="backToChat()">Back to Chat</button>
+      </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+         var userStatus = 'online';
+      $(function () {
+        var socket = io();
+        var username = '';
+        var userColor = getRandomColor();
+        var userStatus = 'online'; // Default user status
+  
+        $('#login').submit(function(){
+          username = $('#username').val();
+          if (username === '') {
+            alert('Please enter your username.');
+            return false;
+          }
+          $('#username-header').text(username);
+          $('#user-profile-name').text(username);
+          $('#online-icon').addClass('online');
+          socket.emit('chat message', { username: 'System', message: `${username} has joined the discussion.`, color: '#777' });
+          $('#login-form').hide();
+          $('#chat').show();
+          return false, username;
+        });
+  
+        function getRandomColor() {
+          var letters = '0123456789ABCDEF';
+          var color = '#';
+          for (var i = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+          }
+          return color;
+        }
+  
+        $('#quit-button').click(function() {
+          $('#chat').hide();
+          $('#login-form').show();
+          socket.emit('chat message', { username: 'System', message: `${username} has left the discussion.`, color: '#777' });
+          username = '';
+        });
+  
+        $('#change-name-button').click(function() {
+          var newName = prompt('Enter your new name:', username);
+          if (newName) {
+            username = newName;
+            $('#username-header').text(newName);
+            $('#user-profile-name').text(newName);
+          }
+        });
+  
+        $('#change-status-button').click(function() {
+          $('#status-dropdown').toggle();
+        });
+  
+        $('#confirm-status-button').click(function() {
+          var selectedStatus = $('#status-select').val();
+          $('#status-dropdown').hide();
+          userStatus = selectedStatus;
+          if (selectedStatus === 'online') {
+            $('#online-icon').removeClass('offline dnd').addClass('online');
+            $('#user-status-indicator').removeClass('offline dnd').addClass('online');
+          } else if (selectedStatus === 'offline') {
+            $('#online-icon').removeClass('online dnd').addClass('offline');
+            $('#user-status-indicator').removeClass('online dnd').addClass('offline');
+          } else if (selectedStatus === 'dnd') {
+            $('#online-icon').removeClass('online offline').addClass('dnd');
+            $('#user-status-indicator').removeClass('online offline').addClass('dnd');
+          }
+        });
+  
+        $('form').submit(function(){
+          if (username === '') {
+            alert('Please enter your username first.');
+            return false;
+          }
+          
+          var message = $('#input').val().trim();
+          if (message === '') {
+            return false;
+          }
+          
+          socket.emit('chat message', { username: username, message: message, color: userColor });
+          $('#input').val('');
+          return false;
+        });
+  
+        socket.on('chat message', function(data){
+          var message = $('<li>').append($('<span>').addClass('author').text(data.username).css('color', data.color));
+          var messageText = $('<span>').text(data.message);
+          message.append(messageText);
+  
+          var timeSpan = $('<span>').addClass('time').text(new Date().toLocaleTimeString());
+          message.append(timeSpan);
+  
+          $('#messages').append(message);
+        });
+      });
+  
+      function openUserProfile(username) {
+        $('#chat-container').hide();
+        $('#user-profile').show();
+        $('#user-profile-name').text(username);
+        $('#user-status-indicator').removeClass().addClass(userStatus);
+      }
+  
+      function backToChat() {
+        $('#user-profile').hide();
+        $('#chat-container').show();
+      }
+    </script>
+  </body>
+  </html>
