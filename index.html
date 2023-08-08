@@ -64,11 +64,9 @@
     .time {
       font-size: 12px;
       color: #777;
-      position: relative;
-      right: 0;
+      float: right;
       display: inline-block;
-      margin-left: 1rem;
-      margin-top: 3px;
+      margin-top: 7px;
       vertical-align: middle;
     }
 
@@ -97,6 +95,111 @@
       background-color: #dc3545;
       margin-top: 10px;
     }
+
+    #user-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    #online-icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    #username-header {
+      font-weight: bold;
+      font-size: 16px;
+      flex: 1;
+    }
+
+    .online {
+      background-color: green;
+    }
+
+    .offline {
+      background-color: red;
+    }
+
+    .dnd {
+      background-color: yellow;
+    }
+
+    #user-profile {
+      display: none;
+      max-width: 400px;
+      width: 100%;
+      background-color: white;
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    #user-profile h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #user-profile p {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    #user-profile button {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    #user-profile select {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    #user-profile #confirm-status-button {
+      background-color: #007bff;
+      color: white;
+    }
+
+    #back-to-chat-button {
+      background-color: green;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 8px 12px;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    #user-profile-name {
+      color: black;
+      display: inline-block;
+      margin-right: 5px;
+    }
+
+    #user-status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
@@ -110,12 +213,34 @@
       </form>
     </div>
     <div id="chat" style="display: none;">
+      <div id="user-info" onclick="openUserProfile()">
+        <span id="online-icon"></span>
+        <span id="username-header"></span>
+      </div>
       <ul id="messages"></ul>
       <form id="form" action="">
         <input id="input" autocomplete="off" /><button>Send</button>
       </form>
       <button id="quit-button">Quit the Discussion</button>
     </div>
+  </div>
+  <div id="user-profile">
+    <h1>User Profile</h1>
+    <p>
+      <span id="user-status-indicator"></span>
+      <span id="user-profile-name"></span>
+    </p>
+    <button id="change-name-button">Change Name</button>
+    <button id="change-status-button">Change Status</button>
+    <div id="status-dropdown" style="display: none;">
+      <select id="status-select">
+        <option value="online">Present</option>
+        <option value="offline">Absent</option>
+        <option value="dnd">Do Not Disturb</option>
+      </select>
+      <button id="confirm-status-button">Confirm</button>
+    </div>
+    <button id="back-to-chat-button" onclick="backToChat()">Back to Chat</button>
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -131,7 +256,10 @@
           alert('Please enter your username.');
           return false;
         }
-        socket.emit('chat message', { username: 'System', message: `${username} has joined the discussion.`, color: '#0F0' });
+        $('#username-header').text(username);
+        $('#user-profile-name').text(username);
+        $('#online-icon').addClass('online');
+        socket.emit('chat message', { username: 'System', message: `${username} has joined the discussion.`, color: '#777' });
         $('#login-form').hide();
         $('#chat').show();
         return false;
@@ -147,10 +275,38 @@
       }
 
       $('#quit-button').click(function() {
-        $('#chat').hide();
+        $('#chat-container').hide();
         $('#login-form').show();
-        socket.emit('chat message', { username: 'System', message: `${username} has left the discussion.`, color: '#F00' });
+        socket.emit('chat message', { username: 'System', message: `${username} has left the discussion.`, color: '#777' });
         username = '';
+      });
+
+      $('#change-name-button').click(function() {
+        var newName = prompt('Enter your new name:');
+        if (newName) {
+          username = newName;
+          $('#username-header').text(newName);
+          $('#user-profile-name').text(newName);
+        }
+      });
+
+      $('#change-status-button').click(function() {
+        $('#status-dropdown').toggle();
+      });
+
+      $('#confirm-status-button').click(function() {
+        var selectedStatus = $('#status-select').val();
+        $('#status-dropdown').hide();
+        if (selectedStatus === 'online') {
+          $('#online-icon').removeClass('offline dnd').addClass('online');
+          $('#user-status-indicator').removeClass('offline dnd').addClass('online');
+        } else if (selectedStatus === 'offline') {
+          $('#online-icon').removeClass('online dnd').addClass('offline');
+          $('#user-status-indicator').removeClass('online dnd').addClass('offline');
+        } else if (selectedStatus === 'dnd') {
+          $('#online-icon').removeClass('online offline').addClass('dnd');
+          $('#user-status-indicator').removeClass('online offline').addClass('dnd');
+        }
       });
 
       $('form').submit(function(){
@@ -171,7 +327,6 @@
 
       socket.on('chat message', function(data){
         var message = $('<li>').append($('<span>').addClass('author').text(data.username).css('color', data.color));
-        message.append(document.createTextNode(": "));
         var messageText = $('<span>').text(data.message);
         message.append(messageText);
 
@@ -181,6 +336,17 @@
         $('#messages').append(message);
       });
     });
+
+    function openUserProfile() {
+      $('#chat-container').hide();
+      $('#user-profile').show();
+      $('#user-profile-name').text(username);
+    }
+
+    function backToChat() {
+      $('#user-profile').hide();
+      $('#chat-container').show();
+    }
   </script>
 </body>
 </html>
